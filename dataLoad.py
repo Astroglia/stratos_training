@@ -1,5 +1,6 @@
 import numpy as np
 import pickle
+import datetime
 from os import listdir
 from os.path import isfile, join
 
@@ -14,19 +15,33 @@ def load_directory_data(directory_name):
     return return_arr
 
 ##### 
-# Batch functions for unwrapping feature matrices/motion data.
+# Batch functions for unwrapping feature matrices/motion data/time deltas
+# These functions will handle: the output from load_directory_data, which contains: [ data_dictionary, data_dictionary, data_dictionary... ]
 #####
 def batch_unwrap_feamats(raw_data):
     return_arr = []
     for i in raw_data:
-        feature_matrix_shape = list(i['NEURAL_SHAPE'])
-        return_arr.append( unwrap_feamats(i['NEURAL_DATA'], feature_matrix_shape[0], feature_matrix_shape[1]) )
+        feature_matrix_shape = list( i['NEURAL_SHAPE'] )
+        return_arr.append( unwrap_feamats( i['NEURAL_DATA'], feature_matrix_shape[0], feature_matrix_shape[1]) )
     return return_arr
 def batch_unwrap_motion_data(raw_data):
     return_arr = []
     for i in raw_data:
-        return_arr.append( unwrap_motion_data(i['MOTION_DATA'] ) )
+        return_arr.append( unwrap_motion_data( i['MOTION_DATA'] ) )
     return return_arr
+def batch_unwrap_time_deltas(raw_data):
+    return_arr = []
+    for i in raw_data: #each dataset given
+        temp_arr = []
+        for j in i['TIME_DELTAS']: #time deltas is a list of lists. each base element is a pair of time deltas for one feature matrix.
+            temp_arr.append( unwrap_time_deltas(j) )
+        return_arr.append(temp_arr)
+    return return_arr
+
+
+##### 
+# Single functions for unwrapping data.
+#####
 
 # unwraps feature data from list of featureset queries
 # returns: [  feature_matrix, feature_matrix ... ]
@@ -51,3 +66,10 @@ def unwrap_motion_data(data):
         final_list_arr.append(temp_list_1)
 
     return final_list_arr
+
+# unwraps single pair of time deltas with max cpu clock precision.
+def unwrap_time_deltas(delta_list):
+    return_arr = []
+    return_arr.append( datetime.datetime.strptime( delta_list[0],'%Y-%m-%d %H:%M:%S.%f' ) )
+    return_arr.append( datetime.datetime.strptime( delta_list[1],'%Y-%m-%d %H:%M:%S.%f' ) )
+    return return_arr
