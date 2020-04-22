@@ -21,8 +21,10 @@ def round_to_nearest( matrix, interval):
     matrix_to_return+= remainder_mat
     return matrix_to_return
 
+#TODO configure to account for function calls from other functions, so that you return the right dimension?
+#or just offload this to the program calling the function, waay simpler that way.
 def get_LeapMotion_zero_matrix():
-    return np.array([5, 4])
+    return [ 0 ]*5
 
 #removes given row/column/removal type from matrix.
 #Supported removal types:
@@ -44,9 +46,19 @@ def remove_measurement(matrix, row=None, column=None, removal_type=None):
 #Currently uses the PROXIMAL_PHALANX as reference for threshold. This is because it's the biggest indicator of if the finger is moving or not.
 def decimate_joint_complexity(matrix, threshold=25):
     matrix = matrix[:, 1]
-    matrix[ matrix > threshold ] = 1
-    matrix[ matrix < threshold ] = 0
+    matrix[ matrix < threshold ] = 0 #everything lower than threshold to zero
+    matrix[ matrix >= threshold ] = 1 #everything greater gets a 1 value
     return matrix
+# same as decimate_joint_complexity, but for a list of thresholds for each finger.
+# slower than decimate_joint_complexity since iteration is needed (TODO: probably more efficient implementation)
+def decimate_individual_joint_complexity(matrix, thresholds):
+    matrix = list(matrix[:,1])
+    if len(thresholds) is not len(matrix):
+        raise ValueError('thresholds have to be the same size as the matrix, otherwise we cant apply a threshold to each matrix')
+    for i, threshold in enumerate(thresholds):
+        if matrix[i] < threshold:  matrix[i] = 0
+        else: matrix[i] = 1
+    return np.array(matrix)
 
 # weighted average on matrix list. e.g. for the number of elements in the list, apply a preferential weight in increasing order:
 #  ( first element-> multiplied by 0), (second -> multiplied by 1, & so on)
