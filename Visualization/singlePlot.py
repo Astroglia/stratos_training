@@ -17,16 +17,20 @@ class singlePlot:
     def plot_data(self):
         self.data_to_plot = np.moveaxis(self.get_data_to_plot()[0,:,:], 0, 1 )
         self.motion_data_to_plot = np.moveaxis(np.dstack(self.motion_data)[0,:,:], 0 , 1 )
+        self.x_axis_time = range(0, len(self.data_to_plot))
         print(self.data_to_plot.shape)
         print(self.motion_data_to_plot.shape)
+       # plt.style.use('dark_background') #pretty
         figure(num=None, figsize=(8, 6), dpi=80, facecolor='w', edgecolor='k')
         #plt.plot(self.data_to_plot)
-        plt.plot(self.motion_data_to_plot[:,0], label='thumb')
-        plt.plot(self.motion_data_to_plot[:,1], label='index')
-        plt.plot(self.motion_data_to_plot[:,2], label='middle')
-        plt.plot(self.motion_data_to_plot[:,3], label='ring')
-        plt.plot(self.motion_data_to_plot[:,4], label='pinky')
+        self.motion_data_to_plot = self.motion_data_to_plot*self.data_to_plot.max() #scale to max
+        plt.fill_between(self.x_axis_time, self.motion_data_to_plot[:,0], 0, alpha=0.5, label='thumb')
+        plt.fill_between(self.x_axis_time, self.motion_data_to_plot[:,1], 0, alpha=0.5, label='index')
+        plt.fill_between(self.x_axis_time, self.motion_data_to_plot[:,2], 0, alpha=0.5, label='middle')
+        plt.fill_between(self.x_axis_time, self.motion_data_to_plot[:,3], 0, alpha=0.5, label='ring')
+        plt.fill_between(self.x_axis_time, self.motion_data_to_plot[:,4], 0, alpha=0.5, label='pinky')
         plt.legend(loc="upper left")
+        plt.plot(self.data_to_plot)
         plt.show()
         
     def get_data_to_plot(self):

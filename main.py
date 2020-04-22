@@ -52,5 +52,5 @@ print(len(feature_matrices))
 from Visualization import singlePlot
 
 plot_object = singlePlot.singlePlot(features=feature_matrices, motion_data=motion_data_processed, feature_count=14)
-plot_object.select_channels([ 1 ]) #plot channels from first channel.
+plot_object.select_channels([ 10 ]) #plot channels from first channel.
 plot_object.plot_data()
