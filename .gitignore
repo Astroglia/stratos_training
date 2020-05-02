@@ -16,6 +16,8 @@
 *.vcf
 *.xml
 
+*.pickle
+
 ### Database ###
 *.accdb
 *.db
