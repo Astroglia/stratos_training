@@ -24,7 +24,7 @@ def round_to_nearest( matrix, interval):
 #TODO configure to account for function calls from other functions, so that you return the right dimension?
 #or just offload this to the program calling the function, waay simpler that way.
 def get_LeapMotion_zero_matrix():
-    return [ 0 ]*5
+    return np.zeros( (5, 4) )
 
 #removes given row/column/removal type from matrix.
 #Supported removal types:
