@@ -45,4 +45,4 @@ print(len(motion_data_processed))
 from Visualization import singlePlot
 plot_object = singlePlot.singlePlot(features=feature_matrices, motion_data=motion_data_processed, feature_count=14)
 plot_object.select_channels([ 10 ]) #plot features calculated from the 10th channel in recording.
-plot_object.plot_motion_and_features()
+plot_object.plot_simple_threshold()
