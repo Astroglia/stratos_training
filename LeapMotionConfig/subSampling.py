@@ -9,6 +9,8 @@ import numpy as np
 #               [  8.68810368  42.49485397 138.06262207 161.1791687 ]  [MIDDLE]
 #               [ 10.69950581  30.49986267 118.01464844 158.56045532]  [RING]
 #               [ 15.83293056  33.06761169  82.57316589 134.74368286]] [PINKY]
+#
+# row corresponds to axis 0, column to axis 1. so motion_data[2, :] means all columns from row 2.
 
 #Round entire matrix to the nearest interval number, e.g. :
 # round_to_nearest(  [ 34.2, 39.2, 35.0, 12.2, 1.8, 2.4] , 5) --> ret: [ 35, 40, 35, 10, 0, 0 ]
@@ -28,7 +30,7 @@ def get_LeapMotion_zero_matrix():
 
 #removes given row/column/removal type from matrix.
 #Supported removal types:
-    # Column Removals: 'METACARPAL', 'PROXIMAL_PHALANX', 'MIDDLE_PHALANX', 'DISTAL_PHALANX  
+    # Column Removals: 'METACARPAL', 'PROXIMAL_PHALANX', 'MIDDLE_PHALANX', 'DISTAL_PHALANX' 
     #    Row Removals: 'THUMB', 'INDEX', 'MIDDLE', 'RING', 'PINKY'
 def remove_measurement(matrix, row=None, column=None, removal_type=None):
     if row is not None:
