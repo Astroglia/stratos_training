@@ -18,7 +18,7 @@ from sympy import symbols, Eq, solve, sqrt, cos, sin
 def convert_multijoint_to_torus_space(single_motion_data, return_type='RESULTANT'):
     conversion_dict = { }
 
-    prox_bone_length = 0.5
+    prox_bone_length = 1.0
     mid_bone_length = 0.5
 
     finger_dict_names = ['THUMB', 'INDEX', 'MIDDLE', 'RING', 'PINKY']
@@ -40,6 +40,9 @@ def convert_multijoint_to_torus_space(single_motion_data, return_type='RESULTANT
         mid_x = prox_x + mid_base_x
         mid_y = prox_x + mid_base_y
 
+        #print(" --- ")
+        #print( [ prox_x, prox_y])
+        #print( [ mid_x, mid_y])
         if(return_type == 'RESULTANT'):
             conversion_dict[finger_dict_names[i]] = [ mid_x , mid_y ]
         elif(return_type == 'PROXIMAL'):
@@ -66,6 +69,33 @@ def get_quadrant(x, y):
     elif (x>=0) and (y<=0):     return 2
     elif (x<=0) and (y<=0):     return 3
     elif (x<=0) and (y>=0):     return 4
+
+def determine_rotation_direction(current_x, current_y, destination_x, destination_y, calculated_angle): #good god this looks awful.
+    c_quad = get_quadrant(current_x, current_y)
+    d_quad = get_quadrant(destination_x, destination_y)
+    if( ( (c_quad == 3) and (d_quad == 4) ) or ( (c_quad == 1) and (d_quad == 2) ) ) : 
+        return calculated_angle
+    elif ( ( (c_quad == 4) and (d_quad == 3) ) or ( (c_quad == 2) and (d_quad == 1) ) ): 
+        return -calculated_angle
+    ### SAME QUADRANTS    
+    elif( ( c_quad == 1) and (d_quad == 1) ) or ( ( c_quad == 2) and (d_quad == 2) ):
+        if current_y > destination_y: return -calculated_angle
+        else: return calculated_angle              
+    elif( ( c_quad == 3) and (d_quad == 3) ) or ( ( c_quad == 4) and (d_quad == 4) ): 
+        if current_y > destination_y: return calculated_angle
+        else: return -calculated_angle    
+    ### ADJACENT QUADRANTS
+    elif( (c_quad == 2) and (d_quad == 3) ) or ((c_quad == 4) and (d_quad == 1)): 
+        if current_y > destination_y: return calculated_angle
+        else: return -calculated_angle
+    elif( (c_quad == 3) and (d_quad == 2) ) or ((c_quad == 1) and (d_quad == 4)):
+        if current_y > destination_y: return -calculated_angle
+        else: return calculated_angle
+    ### OPPOSITE QUADRANTS
+    elif( ( (c_quad == 3) and (d_quad == 1) ) or ( (c_quad == 4) and (d_quad == 2))   ):
+        return -calculated_angle
+    elif( ( (c_quad == 1) and (d_quad == 3) ) or ( (c_quad == 2) and (d_quad == 4))):
+        return calculated_angle
 
 #currently assumes 2 joints.
 #current_coordinates --> the x/y coordinate of the torus map. (the output from convert_multijoint_to_torus_space)
@@ -128,62 +158,33 @@ def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordi
                 return solution_2_angle
     
     valid_prox_phalanx_coord = discard_illegal_coordinate_solutions( prox_coord_solutions[0], prox_coord_solutions[1] )
-
+    print(prox_coord_solutions)
+    print(valid_prox_phalanx_coord)
+    print("==-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
     #2. , find the angle needed to move the proximal phalanx vector to be a distance of bone_length away from 
     #the destination x/y (because bone_length is the length of the middle phalanx bone)
-    def vector_angle_2(vector1, vector2):
-        dot_product = 0
-        mag1, mag2 = [ 0, 0 ]
-        for i, coord in enumerate(vector1):
-            dot_product+= coord*vector2[i]
-            mag1+=coord**2
-            mag2+=vector2[i]**2
-        mag1 = math.sqrt(mag1)
-        mag2 = math.sqrt(mag2)
-        return math.acos(   dot_product / (mag1*mag2)  )
+    def vector_angle_2D(v1, v2):
+        v1_u = v1 / np.linalg.norm(v1)
+        v2_u = v2 / np.linalg.norm(v2)
+        return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
     
-    prox_angle_solution = vector_angle_2([c_x_v1, c_y_v1], [ valid_prox_phalanx_coord[0], valid_prox_phalanx_coord[1] ])
+    prox_angle_solution = vector_angle_2D([c_x_v1, c_y_v1], [ valid_prox_phalanx_coord[0], valid_prox_phalanx_coord[1] ])
+    #2d vector angle is not sign-dependant (it just gives the angle between vectors), so we need to decide which way to rotate
+    #the proximal phalanx:
+    prox_rotation = determine_rotation_direction( valid_prox_phalanx_coord[0], valid_prox_phalanx_coord[1], d_x, d_y, prox_angle_solution)
 
-    #3. , find the simulated coordinate for vector 2 if it did not move with vector 1. Use this coordinate to find
+    #3. , find the simulated coordinate for vector 2 if it was rigidly attached to vector 1. Use this coordinate to find
     #how much vector 2 should be rotated to reach the destination coordinate.
-    sim_x_v2 =  c_x_v2*math.cos(prox_angle_solution) - c_y_v2*math.sin(prox_angle_solution) 
-    sim_y_v2 =  c_x_v2*math.sin(prox_angle_solution) + c_y_v2*math.cos(prox_angle_solution)
-
-    print(sim_x_v2)
-    print(sim_y_v2)
-
-    print( d_x )
-    print( d_y )
+    sim_x_v2 =  c_x_v2*math.cos(prox_rotation) - c_y_v2*math.sin(prox_rotation) 
+    sim_y_v2 =  c_x_v2*math.sin(prox_rotation) + c_y_v2*math.cos(prox_rotation)
 
     #4. , as mentioned, find the angle between the simulated coordinates and the destination coordinates. this is the 
     #amount to rotate vector 2.
-    mid_angle_solution = vector_angle_2( [sim_x_v2, sim_y_v2], [ d_x, d_y ])
+    mid_angle_solution = vector_angle_2D( [sim_x_v2, sim_y_v2], [ d_x, d_y ])
+    #same issue was proximal angle solution (no direction indication)
+    mid_rotation = determine_rotation_direction( sim_x_v2, sim_y_v2, d_x, d_y, mid_angle_solution)
+   # mid_rotation = determine_rotation_direction( c_x_v2, c_y_v2, d_x, d_y, mid_angle_solution)
 
-    #5. , determine if the rotation should be positive or negative for the proximal and middle phalanx.
-    #this is so that a robotic finger can simply ask if positive or negative rotation.
-    #this cannot use simple arctan measurements because of the middle phalanx vector rotation (it's not with respect to the origin)
-    def determine_rotation_direction(current_x, current_y, destination_x, destination_y, calculated_angle): #good god this looks awful.
-        c_quad = get_quadrant(current_x, current_y)
-        d_quad = get_quadrant(destination_x, destination_y)
-        if( ( (c_quad == 3) and (d_quad == 4) ) or ( (c_quad == 1) and (d_quad == 2) ) ) : 
-            return calculated_angle
-        elif ( ( (c_quad == 4) and (d_quad == 3) ) or ( (c_quad == 2) and (d_quad == 1) ) ): 
-            return -calculated_angle
-        elif( ( c_quad == 1) and (d_quad == 1) ) or ( ( c_quad == 2) and (d_quad == 2) ):
-            if current_y > destination_y: return -calculated_angle
-            else: return calculated_angle              
-        elif( ( c_quad == 3) and (d_quad == 3) ) or ( ( c_quad == 4) and (d_quad == 4) ): 
-            if current_y > destination_y: return calculated_angle
-            else: return -calculated_angle    
-        elif( (c_quad == 2) and (d_quad == 3) ) or ((c_quad == 4) and (d_quad == 1)): 
-            if current_y > destination_y: return calculated_angle
-            else: return -calculated_angle
-        elif( (c_quad == 3) and (d_quad == 2) ) or ((c_quad == 1) and (d_quad == 4)):
-            if current_y > destination_y: return -calculated_angle
-            else: return calculated_angle
-
-    prox_rotation = determine_rotation_direction( valid_prox_phalanx_coord[0], valid_prox_phalanx_coord[1], d_x, d_y, prox_angle_solution)
-    mid_rotation = determine_rotation_direction( c_x_v2, c_y_v2, d_x, d_y, mid_angle_solution)
     return_dict = {'prox_phalanx_coord': valid_prox_phalanx_coord, 'prox_angle_change': prox_rotation, 
                    'mid_phalanx_coord': [d_x, d_y], 'mid_angle_change': mid_rotation}
     return return_dict
