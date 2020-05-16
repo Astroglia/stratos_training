@@ -12,6 +12,7 @@ from sympy import symbols, Eq, solve, sqrt, cos, sin
 #
 # row corresponds to axis 0, column to axis 1. so motion_data[2, :] means all columns from row 2.
 
+
 #pretty much just angle to x/y coordinates, but this function is primarily to reduce complexity of the dataset for the neural network.
 #then the computation of x/y coordinate to multijoint movement is done via robotic hand programming to find the movement required to 
 #get to a new x/y coordinate.
@@ -36,9 +37,14 @@ def convert_multijoint_to_torus_space(single_motion_data, return_type='RESULTANT
         mid_base_x = mid_bone_length*math.cos(mid_phalanx_angle*(math.pi/180.0)) 
         mid_base_y = mid_bone_length*math.sin(mid_phalanx_angle*(math.pi/180.0)) 
 
-        # x/y coordinates of the end of the middle phalanx
-        mid_x = prox_x + mid_base_x
-        mid_y = prox_x + mid_base_y
+        #the mid x/y coordinates 
+        mid_x = (prox_bone_length + mid_bone_length)*math.cos(mid_phalanx_angle*(math.pi/180.0))
+        mid_y = (prox_bone_length + mid_bone_length)*math.sin(mid_phalanx_angle*(math.pi/180.0)) 
+
+        #mid_x = prox_x + mid_base_x
+        #mid_y = prox_x + mid_base_y
+        if (-0.5 < mid_x < 0.5) and (-0.5 < mid_y < 0.5):
+            print( mid_x, " || ",mid_y)
 
         #print(" --- ")
         #print( [ prox_x, prox_y])
@@ -100,9 +106,10 @@ def determine_rotation_direction(current_x, current_y, destination_x, destinatio
 #currently assumes 2 joints.
 #current_coordinates --> the x/y coordinate of the torus map. (the output from convert_multijoint_to_torus_space)
 #destination_coordinates --> the requested coordinates to move the two-joint model to
-#bone_length --> assumed equivalent for each joint. 
-def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordinates, bone_length=0.5):
-
+#bone_length --> list of bone lengths.
+def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordinates, bone_lengths=None):
+    if bone_lengths == None:
+        bone_lengths = { 'PROX': 1.0, 'MID': 0.5 }
     #1. , find the angle on the inner circle that results in a distance of bone_length away from destination_coordinates.
     def distance_calculation(dest_x, dest_y, curr_x, curr_y, origin_x, origin_y, radius):
         t = symbols('t') #theta
@@ -124,7 +131,7 @@ def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordi
     c_x_v2, c_y_v2 = [ current_coordinates[1][0], current_coordinates[1][1] ] #middle   vector 2 coordinates
     d_x, d_y = [ destination_coordinates[0], destination_coordinates[1] ]
 
-    prox_coord_solutions = distance_calculation(d_x, d_y, c_x_v1, c_y_v1, 0, 0, bone_length)
+    prox_coord_solutions = distance_calculation(d_x, d_y, c_x_v1, c_y_v1, 0, 0, bone_lengths['PROX'])
     #1.a since distance_calculation can give 2 correct results (for a given point, there's always two points on a circle
     # equidistance away from it), discard the result that would form an "illegal" robotic finger mapping.
     def discard_illegal_coordinate_solutions( solution_1, solution_2 ):
@@ -156,11 +163,11 @@ def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordi
                 return solution_1_angle
             else:
                 return solution_2_angle
-    
+
+   # print(prox_coord_solutions)
     valid_prox_phalanx_coord = discard_illegal_coordinate_solutions( prox_coord_solutions[0], prox_coord_solutions[1] )
-    print(prox_coord_solutions)
-    print(valid_prox_phalanx_coord)
-    print("==-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
+   # print(valid_prox_phalanx_coord)
+   # print("==-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
     #2. , find the angle needed to move the proximal phalanx vector to be a distance of bone_length away from 
     #the destination x/y (because bone_length is the length of the middle phalanx bone)
     def vector_angle_2D(v1, v2):
