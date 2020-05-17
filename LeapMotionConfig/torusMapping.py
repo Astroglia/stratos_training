@@ -80,28 +80,29 @@ def determine_rotation_direction(current_x, current_y, destination_x, destinatio
     c_quad = get_quadrant(current_x, current_y)
     d_quad = get_quadrant(destination_x, destination_y)
     if( ( (c_quad == 3) and (d_quad == 4) ) or ( (c_quad == 1) and (d_quad == 2) ) ) : 
-        return calculated_angle
-    elif ( ( (c_quad == 4) and (d_quad == 3) ) or ( (c_quad == 2) and (d_quad == 1) ) ): 
         return -calculated_angle
+    elif ( ( (c_quad == 4) and (d_quad == 3) ) or ( (c_quad == 2) and (d_quad == 1) ) ): 
+        return calculated_angle
     ### SAME QUADRANTS    
     elif( ( c_quad == 1) and (d_quad == 1) ) or ( ( c_quad == 2) and (d_quad == 2) ):
-        if current_y > destination_y: return -calculated_angle
-        else: return calculated_angle              
-    elif( ( c_quad == 3) and (d_quad == 3) ) or ( ( c_quad == 4) and (d_quad == 4) ): 
         if current_y > destination_y: return calculated_angle
-        else: return -calculated_angle    
+        else: return -calculated_angle              
+    elif( ( c_quad == 3) and (d_quad == 3) ) or ( ( c_quad == 4) and (d_quad == 4) ): 
+        if current_y > destination_y: return -calculated_angle
+        else: return calculated_angle    
     ### ADJACENT QUADRANTS
     elif( (c_quad == 2) and (d_quad == 3) ) or ((c_quad == 4) and (d_quad == 1)): 
-        if current_y > destination_y: return calculated_angle
-        else: return -calculated_angle
-    elif( (c_quad == 3) and (d_quad == 2) ) or ((c_quad == 1) and (d_quad == 4)):
         if current_y > destination_y: return -calculated_angle
         else: return calculated_angle
+    elif( (c_quad == 3) and (d_quad == 2) ) or ((c_quad == 1) and (d_quad == 4)):
+        if current_y > destination_y: return calculated_angle
+        else: return -calculated_angle
     ### OPPOSITE QUADRANTS
     elif( ( (c_quad == 3) and (d_quad == 1) ) or ( (c_quad == 4) and (d_quad == 2))   ):
-        return -calculated_angle
-    elif( ( (c_quad == 1) and (d_quad == 3) ) or ( (c_quad == 2) and (d_quad == 4))):
         return calculated_angle
+    elif( ( (c_quad == 1) and (d_quad == 3) ) or ( (c_quad == 2) and (d_quad == 4))):
+        return -calculated_angle
+
 
 #currently assumes 2 joints.
 #current_coordinates --> the x/y coordinate of the torus map. (the output from convert_multijoint_to_torus_space)
@@ -110,28 +111,27 @@ def determine_rotation_direction(current_x, current_y, destination_x, destinatio
 def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordinates, bone_lengths=None):
     if bone_lengths == None:
         bone_lengths = { 'PROX': 1.0, 'MID': 0.5 }
-    #1. , find the angle on the inner circle that results in a distance of bone_length away from destination_coordinates.
-    def distance_calculation(dest_x, dest_y, curr_x, curr_y, origin_x, origin_y, radius):
+    #1. , find the angle on the inner circle that results in a mid_bone_length distance away from destination_coordinates.
+    def distance_calculation(dest_x, dest_y, origin_x, origin_y, v1_radius, v2_radius):
         t = symbols('t') #theta
         #distance calculation between points, but since we have a circle we use radius*trig_id(theta)
         #this results in two possible locations that is a distance of --radius-- away from {dest_x, dest_y}
-        dist = (dest_x - (origin_x + radius*cos(t)))**2 + (dest_y - (origin_y + radius*sin(t)))**2 - radius**2
+        dist = (dest_x - (origin_x + v1_radius*cos(t)))**2 + (dest_y - (origin_y + v1_radius*sin(t)))**2 - v2_radius**2
         sympy_eq = Eq(dist)
-        solution = solve(sympy_eq, t, simplify=False) #should be two pairs of solutions.
-
+        solution = solve(sympy_eq, t, simplify=False) #should be two pairs of solutions (remember it's in radians!)
         solutions = [ ]
         for i in solution:
-            x = radius*math.cos(i)
-            y = radius*math.sin(i)
+            x = v1_radius*math.cos(i)
+            y = v1_radius*math.sin(i)
             distance = math.sqrt( (dest_x - x)**2 + (dest_y - y)**2  )
-            if (radius - 0.05) < distance < (radius + 0.05):
+            if (v2_radius - 0.05) < distance < (v2_radius + 0.05):
                 solutions.append( [x, y] )
         return solutions
     c_x_v1, c_y_v1 = [ current_coordinates[0][0], current_coordinates[0][1] ] #proximal vector 1 coordinates
     c_x_v2, c_y_v2 = [ current_coordinates[1][0], current_coordinates[1][1] ] #middle   vector 2 coordinates
     d_x, d_y = [ destination_coordinates[0], destination_coordinates[1] ]
 
-    prox_coord_solutions = distance_calculation(d_x, d_y, c_x_v1, c_y_v1, 0, 0, bone_lengths['PROX'])
+    prox_coord_solutions = distance_calculation(d_x, d_y, 0, 0, bone_lengths['PROX'], bone_lengths['MID'])
     #1.a since distance_calculation can give 2 correct results (for a given point, there's always two points on a circle
     # equidistance away from it), discard the result that would form an "illegal" robotic finger mapping.
     def discard_illegal_coordinate_solutions( solution_1, solution_2 ):
@@ -159,15 +159,14 @@ def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordi
         else: 
             solution_1_angle = math.atan( solution_1[1]/solution_1[0])
             solution_2_angle = math.atan( solution_2[1]/solution_2[0])
-            if solution_1_angle > solution_2_angle:
-                return solution_1_angle
+            if solution_1_angle >= solution_2_angle:
+                return solution_1
             else:
-                return solution_2_angle
+                return solution_2
 
-   # print(prox_coord_solutions)
     valid_prox_phalanx_coord = discard_illegal_coordinate_solutions( prox_coord_solutions[0], prox_coord_solutions[1] )
-   # print(valid_prox_phalanx_coord)
-   # print("==-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
+    print("V1 COORD: " , valid_prox_phalanx_coord)
+
     #2. , find the angle needed to move the proximal phalanx vector to be a distance of bone_length away from 
     #the destination x/y (because bone_length is the length of the middle phalanx bone)
     def vector_angle_2D(v1, v2):
@@ -179,7 +178,7 @@ def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordi
     #2d vector angle is not sign-dependant (it just gives the angle between vectors), so we need to decide which way to rotate
     #the proximal phalanx:
     prox_rotation = determine_rotation_direction( valid_prox_phalanx_coord[0], valid_prox_phalanx_coord[1], d_x, d_y, prox_angle_solution)
-
+    print("V1 ROTATION: ", prox_rotation*(180/math.pi))
     #3. , find the simulated coordinate for vector 2 if it was rigidly attached to vector 1. Use this coordinate to find
     #how much vector 2 should be rotated to reach the destination coordinate.
     sim_x_v2 =  c_x_v2*math.cos(prox_rotation) - c_y_v2*math.sin(prox_rotation) 
