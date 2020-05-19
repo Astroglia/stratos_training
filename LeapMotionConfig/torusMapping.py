@@ -174,24 +174,37 @@ def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordi
     prox_angle_solution = vector_angle_2D([c_x_v1, c_y_v1], [ valid_prox_phalanx_coord[0], valid_prox_phalanx_coord[1] ])
     #2d vector angle is not sign-dependant (it just gives the angle between vectors), so we need to decide which way to rotate
     #the proximal phalanx:
-    print(prox_angle_solution)
     prox_rotation = prox_angle_solution*get_rotation_direction(c_x_v1, c_y_v1, valid_prox_phalanx_coord[0], valid_prox_phalanx_coord[1])
-  #  prox_rotation = determine_rotation_direction( valid_prox_phalanx_coord[0], valid_prox_phalanx_coord[1], d_x, d_y, prox_angle_solution)
-    print("V1 ROTATION: ", prox_rotation*(180/math.pi))
 
     #3. , find the simulated coordinate for vector 2 if it was rigidly attached to vector 1. Use this coordinate to find
     #how much vector 2 should be rotated to reach the destination coordinate.
+
+    print("current v2 coordinates: ", c_x_v2, " ||| ", c_y_v2)
+
     sim_x_v2 =  c_x_v2*math.cos(prox_rotation) - c_y_v2*math.sin(prox_rotation) 
     sim_y_v2 =  c_x_v2*math.sin(prox_rotation) + c_y_v2*math.cos(prox_rotation)
     print("simulated v2 coordinates: ", sim_x_v2, " ||| ", sim_y_v2)
 
+    #4. the simulated v2 coordinate then forms an isoceles triangle ( vector2---vector1---destination )
+    # law of cosines can then be applied (c^2 = a^2 + b^2 - 2*a*b*cos(X) ), solving for X.
+    arccos_numerator = (2*(bone_lengths['MID']**2)) - math.pow( math.sqrt(math.pow(sim_x_v2-d_x, 2) + math.pow(sim_y_v2-d_y, 2)), 2 )
+    arccos_denominator = 2*(bone_lengths['MID']**2)
+    mid_angle_solution = math.acos(arccos_numerator/arccos_denominator)
+    mid_rotation = mid_angle_solution*get_rotation_direction( sim_x_v2, sim_y_v2, d_x, d_y)
+
     #4. , as mentioned, find the angle between the simulated coordinates and the destination coordinates. this is the 
     #amount to rotate vector 2.
-    mid_angle_solution = vector_angle_2D( [sim_x_v2, sim_y_v2], [ d_x, d_y ])
-    #same issue was proximal angle solution (no direction indication)
-    mid_rotation = mid_angle_solution*get_rotation_direction( sim_x_v2, sim_y_v2, d_x, d_y)
-  #  mid_rotation = determine_rotation_direction( sim_x_v2, sim_y_v2, d_x, d_y, mid_angle_solution)
-   # mid_rotation = determine_rotation_direction( c_x_v2, c_y_v2, d_x, d_y, mid_angle_solution)
+
+    print(mid_rotation)
+
+    origin_x = valid_prox_phalanx_coord[0]
+    origin_y = valid_prox_phalanx_coord[1]
+
+    tx = math.cos(mid_rotation)*(sim_x_v2 - origin_x) - math.sin(mid_rotation)*(sim_y_v2 - origin_y) + origin_x
+    ty = math.sin(mid_rotation)*(sim_x_v2 - origin_x) + math.cos(mid_rotation)*(sim_y_v2 - origin_y) + origin_y
+
+    print("TEST: ", tx, " ||| ", ty)
+    #the issue has to do with rotating from origin vs rotating from v1.
 
     return_dict = {'prox_phalanx_coord': valid_prox_phalanx_coord, 'prox_angle_change': prox_rotation, 
                    'mid_phalanx_coord': [d_x, d_y], 'mid_angle_change': mid_rotation}
