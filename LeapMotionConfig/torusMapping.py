@@ -115,8 +115,8 @@ def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordi
     #1. , find the angle on the inner circle that results in a mid_bone_length distance away from destination_coordinates.
     def distance_calculation(dest_x, dest_y, origin_x, origin_y, v1_radius, v2_radius):
         t = symbols('t') #theta
-        #distance calculation between points, but since we have a circle we use radius*trig_id(theta)
-        #this results in two possible locations that is a distance of --radius-- away from {dest_x, dest_y}
+        #distance calculation between points, but since we have a circle we use v1_radius*trig_id(theta)
+        #this results in two possible locations that is a distance of --v2_radius-- away from {dest_x, dest_y}
         dist = (dest_x - (origin_x + v1_radius*cos(t)))**2 + (dest_y - (origin_y + v1_radius*sin(t)))**2 - v2_radius**2
         sympy_eq = Eq(dist)
         solution = solve(sympy_eq, t, simplify=True) #usually two pairs of solutions.
