@@ -106,6 +106,10 @@ def get_rotation_direction(current_x, current_y, destination_x, destination_y):
 #destination_coordinates --> the requested coordinates to move the two-joint model to
 #bone_length --> list of bone lengths.
 def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordinates, bone_lengths=None):
+    print("CURRENT COORDINATES: ", current_coordinates)
+    print("DESTINATION COORDINATES: ", destination_coordinates)
+
+
     if bone_lengths == None:
         bone_lengths = { 'PROX': 1.0, 'MID': 0.5 }
     #1. , find the angle on the inner circle that results in a mid_bone_length distance away from destination_coordinates.
@@ -115,8 +119,19 @@ def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordi
         #this results in two possible locations that is a distance of --radius-- away from {dest_x, dest_y}
         dist = (dest_x - (origin_x + v1_radius*cos(t)))**2 + (dest_y - (origin_y + v1_radius*sin(t)))**2 - v2_radius**2
         sympy_eq = Eq(dist)
-        solution = solve(sympy_eq, t, simplify=False) #should be two pairs of solutions (remember it's in radians!)
-        solutions = [ ]
+        solution = solve(sympy_eq, t, simplify=True) #usually two pairs of solutions.
+
+        #sometimes we'll get an edge case just out of reach for a solution. nudge the destination vector slightly.
+        if(len(solution)) == 0:
+            rad = -0.1
+            dest_x =  dest_x*math.cos(rad) - dest_y*math.sin(rad) 
+            dest_y =  dest_x*math.sin(rad) + dest_y*math.cos(rad)
+            dist = (dest_x - (origin_x + v1_radius*cos(t)))**2 + (dest_y - (origin_y + v1_radius*sin(t)))**2 - v2_radius**2
+            sympy_eq = Eq(dist)
+            solution = solve(sympy_eq, t, simplify=True)
+
+        print(solution)
+        solutions = [ ] #???
         for i in solution:
             x = v1_radius*math.cos(i)
             y = v1_radius*math.sin(i)
@@ -160,6 +175,8 @@ def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordi
                 return solution_1
             else:
                 return solution_2
+
+    print(prox_coord_solutions)
 
     valid_prox_phalanx_coord = discard_illegal_coordinate_solutions( prox_coord_solutions[0], prox_coord_solutions[1] )
     print("VALID V1 COORD: " , valid_prox_phalanx_coord)

@@ -40,29 +40,21 @@ resultant_index =   [ ]
 for i in range(len(torus_mapped_proximal)):
     prox_index.append( torus_mapped_proximal[i]['INDEX'])
     mid_index.append( torus_mapped_mid[i]['INDEX'])
-
-    test = torus_mapped_resultant[i]['INDEX']
-
-   # print( torus_mapped_resultant[i]['INDEX'])
     resultant_index.append( torus_mapped_resultant[i]['INDEX'])
 
+###### example decoding from given coordinates.
 fingerModel = FingerRig.RiggedFinger()
-previous_mid_phalanx_coord = [ 0, 0 ]
-for i, dest_coord in enumerate(resultant_index):
-    decoded_map = torusMapping.two_joint_decode_torus_space_mapping( [fingerModel.get_v1_coords(), fingerModel.get_v2_coords()], dest_coord )
-    v1_rot = decoded_map['prox_angle_change']
-    v2_rot = decoded_map['mid_angle_change']
-   # print(v1_rot)
-   # print(v2_rot)
-    fingerModel.rigid_rotation(v1_rot, v2_rot)
-    print("POST ROTATION CALCULATED v2 : ", fingerModel.get_v2_coords() )
-    print("ACTUAL DESTINATION: ", dest_coord)
-        # prox_phalanx_coord = decoded_map['prox_phalanx_coord']
-        # prox_angle_change = decoded_map['prox_angle_change']
-        # mid_phalanx_coord = decoded_map['mid_phalanx_coord']
-        # mid_angle_change = decoded_map['mid_angle_change']
-         
 
+# test_cases = [ [ 1.2, -0.2 ], [ 1.4, 0.4 ], [ -0.4, -1.2 ], [ 1, -0.8] ]
+
+# for i, dest_coord in enumerate(test_cases): #resultant_index
+#     decoded_map = torusMapping.two_joint_decode_torus_space_mapping( [fingerModel.get_v1_coords(), fingerModel.get_v2_coords()], dest_coord )
+#     v1_rot = decoded_map['prox_angle_change']
+#     v2_rot = decoded_map['mid_angle_change']
+#     fingerModel.rigid_rotation(v1_rot, v2_rot)
+#     print("DET : ", fingerModel.get_v2_coords())
+#     print("ACT : ", dest_coord)
+#     print("----")
 
 ### PLOTTING: SHOW VECTOR RESULTS OF TORUS MAPPING
 
@@ -110,15 +102,75 @@ for i, dest_coord in enumerate(resultant_index):
 #     #plt.pause(0.010)
 
 
+################### TESTING OF TORUS DECODING
 
 
+def remove_pts(list_of_pts):
+    list_of_pts[0].remove()
+    list_of_pts.pop(0)
+plt.style.use('dark_background')
+def xy(r,phi):
+    return r*np.cos(phi), r*np.sin(phi)
+phis=np.arange(0,6.28,0.01)
+r_outer =1.5 #outer boundary
+r_inner = 0.5 #inner boundary
+r_v1_circle = 1.0 #navigable space for vector 1.
+
+plt.figure(figsize=(10, 10))
+plt.plot(*xy(r_outer, phis), color='violet')
+plt.plot(*xy(r_inner, phis), color='violet' )
+plt.plot(*xy(r_v1_circle, phis), color='deeppink')
+
+plt.scatter( 0, 0, s=20, color='violet')
+past_points = [ ]
+past_points_mid = [ ]
+past_points_predict = [ ]
+previous_annotation = [ plt.annotate( '0' , xy=(0.5, 0.5),  xycoords='data', xytext=(0.8, 0.95), textcoords='axes fraction',
+                horizontalalignment='right', verticalalignment='top', )]
 
 
+fingerModel = FingerRig.RiggedFinger()
+previous_mid_phalanx_coord = [ 0, 0 ]
+for i, dest_coord in enumerate(resultant_index):
+    #prediction decoding.
+    decoded_map = torusMapping.two_joint_decode_torus_space_mapping( [fingerModel.get_v1_coords(), fingerModel.get_v2_coords()], dest_coord )
+    v1_rot = decoded_map['prox_angle_change']
+    v2_rot = decoded_map['mid_angle_change']
+    fingerModel.rigid_rotation(v1_rot, v2_rot)
+    print("DET : ", fingerModel.get_v2_coords())
+    print("ACT : ", dest_coord)
+    print("----")
 
+    #### plotting #### 
 
+    #remove old points
+    if len(past_points) > 5:
+        remove_pts(past_points)
+        remove_pts(past_points_mid)
+        remove_pts(past_points_predict)
 
+    #plot new points
+    prox_pts = prox_index[i]
+    mid_pts = mid_index[i]
+    prox_plotted_pts, = plt.plot( [0, prox_pts[0] ], [0, prox_pts[1]], color='mediumspringgreen', label=i)
+    mid_plotted_pts, = plt.plot( [ prox_pts[0], prox_pts[0] + mid_pts[0]], [prox_pts[1], prox_pts[1] +  mid_pts[1] ],
+     color='blueviolet', label=i)
+    coords_predicted = fingerModel.get_v2_coords()
+    predict_plotted_pts, = plt.plot( [0, coords_predicted[0]], [0, coords_predicted[1]], color='crimson', label=i )
 
+    #add new points to old point list.
+    past_points.append(prox_plotted_pts)
+    past_points_mid.append(mid_plotted_pts)
+    past_points_predict.append(predict_plotted_pts)
+    
+    #update annotation info.
+    curr_annotation = plt.annotate( "COUNTER: " + str(i) , xy=(0.5, 0.5),  xycoords='data', xytext=(0.8, 0.95), textcoords='axes fraction',
+                horizontalalignment='right', verticalalignment='top', color='white', )
+    previous_annotation[0].remove()
+    previous_annotation.pop(0)
+    previous_annotation.append(curr_annotation)
 
+    plt.pause(0.001)
 
 
 # for i in range(len(motion_data_processed)):
