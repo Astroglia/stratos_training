@@ -56,52 +56,6 @@ fingerModel = FingerRig.RiggedFinger()
 #     print("ACT : ", dest_coord)
 #     print("----")
 
-### PLOTTING: SHOW VECTOR RESULTS OF TORUS MAPPING
-
-# def remove_pts(list_of_pts):
-#     list_of_pts[0].remove()
-#     list_of_pts.pop(0)
-# plt.style.use('dark_background')
-# def xy(r,phi):
-#     return r*np.cos(phi), r*np.sin(phi)
-# phis=np.arange(0,6.28,0.01)
-# r_outer =1.5 #outer boundary
-# r_inner = 0.5 #inner boundary
-# r_v1_circle = 1.0 #navigable space for vector 1.
-
-# plt.figure(figsize=(10, 10))
-
-# plt.plot(*xy(r_outer, phis), color='violet')
-# plt.plot(*xy(r_inner, phis), color='violet' )
-# plt.plot(*xy(r_v1_circle, phis), color='deeppink')
-
-# plt.scatter( 0, 0, s=20, color='violet')
-# past_points = [ ]
-# past_points_mid = [ ]
-# previous_annotation = [ plt.annotate( '0' , xy=(0.5, 0.5),  xycoords='data', xytext=(0.8, 0.95), textcoords='axes fraction',
-#                 horizontalalignment='right', verticalalignment='top', )]
-
-# for i , pts in enumerate(prox_index):
-#     if len(past_points) > 5:
-#         remove_pts(past_points)
-#         remove_pts(past_points_mid)
-
-#     curr_plot_pts, = plt.plot( [0, pts[0] ], [0, pts[1]], color='mediumspringgreen', label=i)
-#     curr_plot_pts_mid, = plt.plot( [ pts[0], pts[0] + mid_index[i][0]], [pts[1], pts[1] +  mid_index[i][1] ],
-#      color='blueviolet', label=i)
-
-#     curr_annotation = plt.annotate( "COUNTER: " + str(i) , xy=(0.5, 0.5),  xycoords='data', xytext=(0.8, 0.95), textcoords='axes fraction',
-#                 horizontalalignment='right', verticalalignment='top', color='white', )
-#     previous_annotation[0].remove()
-#     previous_annotation.pop(0)
-#     previous_annotation.append(curr_annotation)
-
-#     past_points.append(curr_plot_pts)
-#     past_points_mid.append(curr_plot_pts_mid)
-#     plt.pause(0.001)
-#     #plt.pause(0.010)
-
-
 ################### TESTING OF TORUS DECODING
 
 
@@ -124,7 +78,8 @@ plt.plot(*xy(r_v1_circle, phis), color='deeppink')
 plt.scatter( 0, 0, s=20, color='violet')
 past_points = [ ]
 past_points_mid = [ ]
-past_points_predict = [ ]
+past_points_predictv1 = [ ]
+past_points_predictv2 = [ ]
 previous_annotation = [ plt.annotate( '0' , xy=(0.5, 0.5),  xycoords='data', xytext=(0.8, 0.95), textcoords='axes fraction',
                 horizontalalignment='right', verticalalignment='top', )]
 
@@ -147,21 +102,32 @@ for i, dest_coord in enumerate(resultant_index):
     if len(past_points) > 5:
         remove_pts(past_points)
         remove_pts(past_points_mid)
-        remove_pts(past_points_predict)
+        remove_pts(past_points_predictv1)
+        remove_pts(past_points_predictv2)
 
     #plot new points
     prox_pts = prox_index[i]
     mid_pts = mid_index[i]
+    print("current prox points, native: ", prox_pts)
+    print("current mid points, native: ", mid_pts)
     prox_plotted_pts, = plt.plot( [0, prox_pts[0] ], [0, prox_pts[1]], color='mediumspringgreen', label=i)
     mid_plotted_pts, = plt.plot( [ prox_pts[0], prox_pts[0] + mid_pts[0]], [prox_pts[1], prox_pts[1] +  mid_pts[1] ],
      color='blueviolet', label=i)
-    coords_predicted = fingerModel.get_v2_coords()
-    predict_plotted_pts, = plt.plot( [0, coords_predicted[0]], [0, coords_predicted[1]], color='crimson', label=i )
 
+    cpv1 = fingerModel.get_v1_coords()
+    cpv2 = fingerModel.get_v2_coords()
+
+    print("graphed mid points: " , [ prox_pts[0], prox_pts[0] + mid_pts[0]], [prox_pts[1], prox_pts[1] +  mid_pts[1] ])
+    print("graphed predicted mid points: ", cpv2)
+   # v1_scatter = plt.scatter( cpv2[0], cpv2[1], color='crimson')
+
+    predict_plotted_ptsv1, = plt.plot( [ 0, cpv1[0]], [ 0, cpv1[1]], color='crimson' )
+    predict_plotted_ptsv2, = plt.plot( [ cpv1[0], cpv2[0] ], [cpv1[1], cpv2[1]], color='crimson' )
     #add new points to old point list.
     past_points.append(prox_plotted_pts)
     past_points_mid.append(mid_plotted_pts)
-    past_points_predict.append(predict_plotted_pts)
+    past_points_predictv1.append(predict_plotted_ptsv1)
+    past_points_predictv2.append(predict_plotted_ptsv2)
     
     #update annotation info.
     curr_annotation = plt.annotate( "COUNTER: " + str(i) , xy=(0.5, 0.5),  xycoords='data', xytext=(0.8, 0.95), textcoords='axes fraction',

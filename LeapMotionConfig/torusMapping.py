@@ -37,14 +37,17 @@ def convert_multijoint_to_torus_space(single_motion_data, return_type='RESULTANT
         mid_base_x = mid_bone_length*math.cos(mid_phalanx_angle*(math.pi/180.0)) 
         mid_base_y = mid_bone_length*math.sin(mid_phalanx_angle*(math.pi/180.0)) 
 
-        #the mid x/y coordinates 
-        mid_x = (prox_bone_length + mid_bone_length)*math.cos(mid_phalanx_angle*(math.pi/180.0))
-        mid_y = (prox_bone_length + mid_bone_length)*math.sin(mid_phalanx_angle*(math.pi/180.0)) 
+        #the mid x/y coordinates
+        mid_x = mid_base_x + prox_x
+        mid_y = mid_base_y + prox_y
+
+       # mid_x = (prox_bone_length + mid_bone_length)*math.cos(mid_phalanx_angle*(math.pi/180.0))
+       # mid_y = (prox_bone_length + mid_bone_length)*math.sin(mid_phalanx_angle*(math.pi/180.0))
 
         #mid_x = prox_x + mid_base_x
         #mid_y = prox_x + mid_base_y
-        if (-0.5 < mid_x < 0.5) and (-0.5 < mid_y < 0.5):
-            print( mid_x, " || ",mid_y)
+      #  if (-0.5 < mid_x < 0.5) and (-0.5 < mid_y < 0.5):
+      #      print( mid_x, " || ",mid_y)
 
         #print(" --- ")
         #print( [ prox_x, prox_y])
@@ -93,23 +96,12 @@ def get_rotation_direction(current_x, current_y, destination_x, destination_y):
     if( d_quad > c_quad ):  return CW
     # #e.g. 4 to 3, 3 to 2, or 2 to 1.
     if( d_quad < c_quad ):  return CCW
-    # if( d_quad == (c_quad + 1) ):   return CW
-    # #e.g. 4 to 3, 3 to 2, or 2 to 1.
-    # if( d_quad == (c_quad - 1) ):   return CCW
-    # if( d_quad == (c_quad + 2) ):   return CW
-    # if( d_quad == (c_quad - 2) ):   return CCW
-    # if( d_quad == (c_quad + 3) ):   return CW
-    # if( d_quad == (c_quad - 3) ):   return CCW
 
 #currently assumes 2 joints.
 #current_coordinates --> the x/y coordinate of the torus map. (the output from convert_multijoint_to_torus_space)
 #destination_coordinates --> the requested coordinates to move the two-joint model to
 #bone_length --> list of bone lengths.
 def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordinates, bone_lengths=None):
-    print("CURRENT COORDINATES: ", current_coordinates)
-    print("DESTINATION COORDINATES: ", destination_coordinates)
-
-
     if bone_lengths == None:
         bone_lengths = { 'PROX': 1.0, 'MID': 0.5 }
     #1. , find the angle on the inner circle that results in a mid_bone_length distance away from destination_coordinates.
@@ -122,16 +114,14 @@ def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordi
         solution = solve(sympy_eq, t, simplify=True) #usually two pairs of solutions.
 
         #sometimes we'll get an edge case just out of reach for a solution. nudge the destination vector slightly.
-        if(len(solution)) == 0:
-            rad = -0.1
-            dest_x =  dest_x*math.cos(rad) - dest_y*math.sin(rad) 
-            dest_y =  dest_x*math.sin(rad) + dest_y*math.cos(rad)
-            dist = (dest_x - (origin_x + v1_radius*cos(t)))**2 + (dest_y - (origin_y + v1_radius*sin(t)))**2 - v2_radius**2
-            sympy_eq = Eq(dist)
-            solution = solve(sympy_eq, t, simplify=True)
-
-        print(solution)
-        solutions = [ ] #???
+        # if(len(solution)) == 0:
+        #     rad = -0.1
+        #     dest_x =  dest_x*math.cos(rad) - dest_y*math.sin(rad)
+        #     dest_y =  dest_x*math.sin(rad) + dest_y*math.cos(rad)
+        #     dist = (dest_x - (origin_x + v1_radius*cos(t)))**2 + (dest_y - (origin_y + v1_radius*sin(t)))**2 - v2_radius**2
+        #     sympy_eq = Eq(dist)
+        #     solution = solve(sympy_eq, t, simplify=True)
+        solutions = [ ]
         for i in solution:
             x = v1_radius*math.cos(i)
             y = v1_radius*math.sin(i)
@@ -176,10 +166,10 @@ def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordi
             else:
                 return solution_2
 
-    print(prox_coord_solutions)
+ #   print(prox_coord_solutions)
 
     valid_prox_phalanx_coord = discard_illegal_coordinate_solutions( prox_coord_solutions[0], prox_coord_solutions[1] )
-    print("VALID V1 COORD: " , valid_prox_phalanx_coord)
+  #  print("VALID V1 COORD: " , valid_prox_phalanx_coord)
 
     #2. , find the angle needed to move the proximal phalanx vector to be a distance of bone_length away from 
     #the destination x/y (because bone_length is the length of the middle phalanx bone)
@@ -196,11 +186,11 @@ def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordi
     #3. , find the simulated coordinate for vector 2 if it was rigidly attached to vector 1. Use this coordinate to find
     #how much vector 2 should be rotated to reach the destination coordinate.
 
-    print("current v2 coordinates: ", c_x_v2, " ||| ", c_y_v2)
+    #print("current v2 coordinates: ", c_x_v2, " ||| ", c_y_v2)
 
     sim_x_v2 =  c_x_v2*math.cos(prox_rotation) - c_y_v2*math.sin(prox_rotation) 
     sim_y_v2 =  c_x_v2*math.sin(prox_rotation) + c_y_v2*math.cos(prox_rotation)
-    print("simulated v2 coordinates: ", sim_x_v2, " ||| ", sim_y_v2)
+   # print("simulated v2 coordinates: ", sim_x_v2, " ||| ", sim_y_v2)
 
     #4. the simulated v2 coordinate then forms an isoceles triangle ( vector2---vector1---destination )
     # law of cosines can then be applied (c^2 = a^2 + b^2 - 2*a*b*cos(X) ), solving for X.
@@ -212,7 +202,7 @@ def two_joint_decode_torus_space_mapping(current_coordinates, destination_coordi
     #4. , as mentioned, find the angle between the simulated coordinates and the destination coordinates. this is the 
     #amount to rotate vector 2.
 
-    print(mid_rotation)
+    #print(mid_rotation)
 
     origin_x = valid_prox_phalanx_coord[0]
     origin_y = valid_prox_phalanx_coord[1]
